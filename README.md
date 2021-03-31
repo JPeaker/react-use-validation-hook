@@ -1,161 +1,68 @@
-# React Hooks to npm boilerplate
+# React useValidation Hook
 
-This repository is a boilerplate for creating custom React hooks and components that we can publish to NPM registry as packages.
+## Summary
 
-I've put together a quick tutorial, it assumes an understanding of React, hooks and unit tests.
+A way to provide complex validation logic to a React hook, allowing maintaining state and managing a list of exceptions through a simple API.
 
-If something is not clear, message me or raise an issue, I will explain in more detail.
-
-I've used this boilerplate to create my NPM package [https://www.npmjs.com/package/@nekogd/react-utility-hooks].
-
-## First things first
-
-Firstly, clone this repository. 
-
-Next, go over to package.json file and amend name, description and author keys.
-
-The package would be served on npm as per what you have typed in the "name".
-
-You may want to use scoped naming i.e. "@myscope/use-my-hook"
-
-More info: [https://docs.npmjs.com/using-npm/scope.html]
-
-## How we will be able to use your package
-
-It follows the common React path.
-
-Follow through the included useCounter example and you will be fine.
-
-Make sure to export your hook (I prefer named exports) in index.ts.
-
-Basically you have to do three things:
-
-a) write your hook (preferably test and type it)
-
-b) export it in index.ts file
-
-c) deploy to NPM
-
-We will able to use your hook like so:
+## Example Usage
 
 ```
- import { useYourHook } from 'your-package-name'
+// Only string-valued exceptions are supported. The returned list of exceptions will come back converted to strings, so
+// non-string valued exceptions can't be searched for (except with calling .toString on what you want to find).
+enum LoginExceptions {
+  EmailRequired = 'EmailRequired',
+  EmailFormat = 'EmailFormat',
+  EmailAndPasswordIdentical = 'EmailAndPasswordIdentical'
+}
+
+const LoginComponent: React.FunctionComponent = () => {
+  const [email, setEmail] = useState<string | null>(null);
+  const [password, setPassword] = useState<string | null>(null);
+  const exceptions = useValidation<LoginExceptions, { email: string | null; password: string | null }>(
+    {
+      [LoginExceptions.EmailRequired]: ({ email }) => email === null || email === '',
+      [LoginExceptions.EmailFormat]: ({ email }) => email === null || !email.includes('@'),
+      [LoginExceptions.EmailAndPasswordIdentical]: ({ email, password }) => email === password,
+    },
+    { email, password }
+  );
+
+  ...
+
+  let errorMessage: string = '';
+  if (exceptions.includes(LoginExceptions.EmailRequired)) {
+    errorMessage = 'Email required';
+  } else if (exceptions.includes(LoginExceptions.EmailFormat)) {
+    errorMessage = 'Email must contain @';
+  } else if (exceptions.includes(LoginExceptions.EmailAndPasswordIdentical)) {
+    errorMessage = 'Email and password may not be the same';
+  }
+
+  return (
+    <>
+      <span>{errorMessage}</span>
+      <input type="email" onChange={event => setEmail(event.target.value)} />
+      <input type="password" onChange={event => setPassword(event.target.value)} />
+    </>
+  );
+};
 ```
 
-## Development commands
+## Motivation
 
-```
- // watch
- yarn start
+The authors have experienced difficulty whenever using a state validation library in the past. They're always convoluted and difficult to work with because they end up being far too clever, digging deep inside the properties of the component to try and make it easy to plug-and-play. When searching for a pattern that will work for the vast majority of our use cases, while giving us a lot of flexibility on how to utilize validation exceptions, we found that this pattern gave a great balance of power (Being able to write complex validation logic) and flexibility (It works in many different situations).
 
- // or
- npm run start
-```
+This pattern makes a very extensible hook available, allowing you to pass in any parts of your state that are relevant for validation, and leave out that which isn't. What you get back is merely a list of validation exceptions that are occurring with the current state. What you do with it is your responsibility.
 
-```
- // builds the dist folder
- yarn build
+## Install
 
- // or
- npm run build
+by using `npm`:
+```bash
+$ npm install react-use-validation-hook
 ```
 
+by using `yarn`:
+
+```bash
+$ npm install react-use-validation-hook
 ```
- // starts tests
- yarn test
-
- // or
-
- npm run test
-```
-
-## Local testing and yarn link
-
-To locally test the package, do the following:
-
-Let's assume your package name is "use-my-counter" and your CRA is "my-app".
-
-Let's also assume they are in one workspace.
-
-```
-workspace
-  - use-my-counter
-  - my-app
-```
-
-a) in hook folder, run
-```
-yarn link
-```
-b) assuming you have a workspace, create a sample CRA app 
-```
-npx create-react-app my-app
-```
-c) navigate to your CRA app folder
-```
-cd my-app
-```
-d) run command
-```
- yarn link use-my-counter
-```
-e)  In your CRA app, you can now user package, as it's linked locally 
-```
-  import { useMyCounter } from 'use-my-counter';
-```
-
-f) However, this will give you an error due to different copy of React and in CRA app. 
-   To counter that let's assume that we have workspace
-```
-workspace
-  - use-my-counter
-  - my-app
-```
-  We navigate to use-my-counter and type (this will link the React versions locally). 
-  
-  Please amend the path to your needs.
-  ```
-   npm link ../my-app/node_modules/react
-  ```
-  We should be good to go to work locally. 
-
-## Deployment to NPM
-
-### Login to correct NPM account
-
-```
-npm login
-```
-
-### Versioning
-
-Increase the version number as per NPM guides [https://docs.npmjs.com/about-semantic-versioning].
-
-```
-// increases the first digit i.e. from 0.5.4 to 1.0.0
-npm version major
-
-// increases the second digit i.e. from 0.0.3 to 0.1.0
-npm version minor
-
-// increases the third digit i.e. from 0.0.1 to 0.0.2
-npm version patch
-```
-
-### Deployment
-
-Run the command and the package should be up.
-
-```
-npm publish --access public
-```
-
-### What If I want to export a component? 
-
-You can do that too, following same pattern as you'd with hooks.
-
-Bear in mind you'd propably need .tsx file and not .ts.
-
-### Share with the world
-
-Share your work and learnings with the world! :)
